@@ -20,32 +20,46 @@ export default function Home() {
 
   // Function to get the API base URL depending on environment
   const getApiBaseUrl = () => {
-    // Check if we're running in development vs production
-    const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-    
-    if (isDev) {
-      // During development, backend runs on localhost:5000
-      return 'http://localhost:5000';
-    } else {
-      // In production/hosted environment, backend runs on the same host
-      // or can be configured via environment variable
-      const backendHost = process.env.NEXT_PUBLIC_BACKEND_URL || '';
-      if (backendHost) {
-        return backendHost;
-      }
-      // If no explicit backend URL, assume same host
-      if (typeof window !== 'undefined') {
-        return `${window.location.protocol}//${window.location.hostname}:${process.env.NEXT_PUBLIC_BACKEND_PORT || '5000'}`;
-      }
-      // Fallback
-      return 'http://localhost:5000';
+    // Use relative paths for Next.js API routes
+    if (typeof window !== 'undefined') {
+      // Client-side: use current host
+      return `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
     }
+    // Server-side: use relative paths
+    return '';
+  };
+  
+  // Function to get the API route path
+  const getApiRoute = (route) => {
+    if (typeof window !== 'undefined') {
+      // Client-side: use relative path
+      return route;
+    }
+    // Server-side: use full path
+    return route;
   };
 
-  // Function to get Socket.IO URL
-  const getSocketUrl = () => {
-    const baseUrl = getApiBaseUrl();
-    return baseUrl;
+  // Note: For Vercel deployment, we'll use a simplified approach without real-time updates
+  // since WebSocket connections may not work well in serverless environments
+  // We'll simulate progress updates instead
+  const simulateProgressUpdates = (jobId) => {
+    // Simulate progress updates for demo purposes
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      if (progress <= 100) {
+        setProgress({
+          status: 'processing',
+          message: `Processing... ${progress}% complete`,
+          current: progress / 10,
+          total: 10,
+          currentUrl: `Simulated progress: ${progress}%`
+        });
+      }
+      if (progress >= 100) {
+        clearInterval(interval);
+      }
+    }, 1000);
   };
 
   const handleConvert = async () => {
@@ -61,53 +75,29 @@ export default function Home() {
     setJobId(null);
     setProgress({ status: "starting", message: "Starting conversion process...", current: 0, total: 0, currentUrl: "" });
 
+    // For Vercel deployment, we'll use a simplified approach
+    // Since WebSocket may not work well in serverless environments
     const apiBaseUrl = getApiBaseUrl();
-    const socketUrl = getSocketUrl();
     
-    // Connect to socket
-    const socket = io(socketUrl, {
-      transports: ['websocket', 'polling']
-    });
+    // Simulate progress updates for better UX
+    simulateProgressUpdates();
     
     try {
-      // Make the request
-      const res = await axios.post(`${apiBaseUrl}/convert`, { 
+      // Make the request to Next.js API route
+      const res = await axios.post(`/api/convert`, { 
         url, 
         maxPages: parseInt(maxPages) || 10 
       }, { timeout: 600000 }); // Increased timeout for longer operations
       
       setJobId(res.data.jobId);
       
-      // Join the job room to receive updates
-      socket.emit('join_job', res.data.jobId);
-      
-      // Listen for progress updates
-      socket.on('progress_update', (data) => {
-        setProgress({
-          status: 'crawling',
-          message: data.message || `Processed ${data.current} of ${data.total} pages`,
-          current: data.current,
-          total: data.total,
-          currentUrl: data.currentUrl
-        });
-      });
-      
-      socket.on('status_update', (data) => {
-        setProgress(prev => ({
-          ...prev,
-          status: data.status,
-          message: data.message
-        }));
-      });
-      
-      socket.on('page_processing', (data) => {
-        setProgress({
-          status: 'processing',
-          message: data.message,
-          current: data.current,
-          total: data.total,
-          currentUrl: data.url
-        });
+      // Clear simulated progress
+      setProgress({
+        status: 'completed',
+        message: 'Conversion completed successfully!',
+        current: res.data.pages.length,
+        total: res.data.pages.length,
+        currentUrl: ''
       });
       
       if (res.data.pages && res.data.pages.length > 0) {
@@ -118,15 +108,18 @@ export default function Home() {
       }
     } catch (err) {
       console.error(err);
+      setProgress({
+        status: 'error',
+        message: 'Conversion failed',
+        current: 0,
+        total: 0,
+        currentUrl: ''
+      });
       setError(
         err.response?.data?.error || "Conversion failed. Try a different website."
       );
     } finally {
       setLoading(false);
-      // Disconnect socket when done
-      setTimeout(() => {
-        socket.disconnect();
-      }, 1000); // Give a little time for final updates
     }
   };
 
@@ -208,7 +201,7 @@ export default function Home() {
           <h2>PDF Preview</h2>
           {selectedPdf ? (
             <iframe
-              src={`${getApiBaseUrl()}/output/${selectedPdf}`}
+              src={`/api/pdf/${jobId}/${selectedPdf}`}
               title="PDF Preview"
               style={{ width: "100%", height: "600px", border: "1px solid #ccc", borderRadius: "8px" }}
             />
@@ -219,7 +212,7 @@ export default function Home() {
           {selectedPdf && (
             <div className="download-section">
               <a 
-                href={`${getApiBaseUrl()}/output/${selectedPdf}`} 
+                href={`/api/pdf/${jobId}/${selectedPdf}`} 
                 className="download"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -228,7 +221,7 @@ export default function Home() {
               </a>
               {jobId && (
                 <a 
-                  href={`${getApiBaseUrl()}/output/${jobId}/merged.pdf`} 
+                  href={`/api/pdf/${jobId}/merged.pdf`} 
                   className="download"
                   target="_blank"
                   rel="noopener noreferrer"

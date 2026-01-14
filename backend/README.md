@@ -78,3 +78,18 @@ Response:
 ```
 
 The generated PDFs are accessible at `/output/{pdf-path}`.
+
+## Deployment Notes
+
+### For Vercel Frontend Deployment
+
+If you're deploying the frontend to Vercel, you'll need to deploy this backend separately to a platform that supports Playwright and heavy computational tasks (like Railway, Render, DigitalOcean, etc.).
+
+### Environment Variables for Production
+
+- `PORT`: Port to run the server on (defaults to 5000)
+- `HOST`: Host to bind to (defaults to 0.0.0.0 for external access)
+
+### CORS Configuration
+
+The backend is configured to allow all origins for flexibility, but in production you should restrict this to your specific frontend domain.

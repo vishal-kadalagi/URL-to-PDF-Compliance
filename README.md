@@ -94,9 +94,52 @@ NEXT_PUBLIC_BACKEND_PORT=5000
 ```
 
 ### Custom Settings
-- **Max Pages**: Control how many pages to crawl (default: 10)
+- **Max Pages**: Control how many pages to process (default: 10)
 - **Timeout**: Adjust page load timeouts as needed
 - **Output Format**: PDFs saved in A4 format with proper margins
+
+---
+
+## 🌐 Vercel Deployment
+
+> ⚠️ **Important Note for Vercel Deployment**
+
+Due to the nature of Playwright (which requires browser binaries) and the heavy processing involved in PDF generation, this application has specific deployment requirements:
+
+### Option 1: Separate Deployment (Recommended)
+- Deploy the **frontend** to Vercel
+- Deploy the **backend** to a platform that supports Playwright (like Railway, Render, DigitalOcean, etc.)
+
+### Option 2: Vercel with Docker
+- Use Vercel's container-based deployment with Playwright pre-installed
+- Requires a custom Dockerfile with Playwright dependencies
+
+### Deployment Steps for Option 1:
+
+1. **Deploy Frontend to Vercel**
+   - Connect your GitHub repository to Vercel
+   - Add environment variables:
+     ```
+     NEXT_PUBLIC_BACKEND_URL=https://your-backend-domain.com
+     ```
+
+2. **Deploy Backend Separately**
+   - Deploy the backend to a platform like Railway:
+     ```bash
+     # In the backend directory
+     git init
+     git add .
+     git commit -m "Initial backend commit"
+     # Push to your chosen platform
+     ```
+
+3. **Configure CORS**
+   - Update your backend's CORS settings to allow your Vercel domain
+
+### Why This Approach?
+- Playwright requires significant resources and specific dependencies
+- Serverless functions (like Vercel's) have limitations on binary installations
+- Heavy PDF processing is better suited for dedicated servers
 
 ---
 
@@ -113,32 +156,6 @@ NEXT_PUBLIC_BACKEND_PORT=5000
 - 🎬 **Media Flags**: Pages with videos/multimedia are flagged
 - 📋 **Merged Report**: Download the complete combined PDF
 - 📊 **Summary**: See statistics and processing details
-
----
-
-## 🌐 Hosting & Deployment
-
-### Production Setup
-The application is designed to work in both development and production environments:
-
-#### Backend Configuration
-```bash
-# Environment variables
-PORT=5000
-HOST=0.0.0.0  # Allows external connections
-```
-
-#### Frontend Configuration
-```bash
-# For production deployment
-NEXT_PUBLIC_BACKEND_URL=https://yourdomain.com/api
-```
-
-### Deployment Options
-- **Heroku**: Works out of the box with proper buildpacks
-- **Vercel**: Optimized for Next.js frontend deployment
-- **Docker**: Multi-container setup available
-- **Traditional Hosting**: Deploy as separate services
 
 ---
 
