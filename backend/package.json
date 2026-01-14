@@ -1,0 +1,19 @@
+{
+  "name": "url-to-pdf-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "install-browsers": "node install-browsers.js",
+    "postinstall": "npm run install-browsers"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsdom": "^24.0.0",
+    "pdf-lib": "^1.17.1",
+    "playwright": "^1.42.0",
+    "uuid": "^9.0.0"
+  }
+}
