@@ -1,6 +1,13 @@
 import { chromium } from "playwright";
 
+// Export the original function
 export async function crawlWebsite(startUrl, maxPages = 10) {
+  const pages = await crawlWebsiteWithProgress(startUrl, maxPages, () => {});
+  return pages;
+}
+
+// New function with progress callback support
+export async function crawlWebsiteWithProgress(startUrl, maxPages = 10, onProgress = () => {}) {
   // Validate start URL
   try {
     new URL(startUrl);
@@ -26,6 +33,14 @@ export async function crawlWebsite(startUrl, maxPages = 10) {
 
       try {
         console.log(`🔍 Crawling: ${currentUrl}`);
+        
+        // Send progress update
+        onProgress({
+          current: visited.size + 1,
+          total: maxPages,
+          currentUrl: currentUrl,
+          message: `Crawling: ${currentUrl}`
+        });
 
         await page.goto(currentUrl, {
           waitUntil: "domcontentloaded",
@@ -62,6 +77,13 @@ export async function crawlWebsite(startUrl, maxPages = 10) {
         }
       } catch (error) {
         console.warn(`⚠️ Skipped: ${currentUrl}`, error.message);
+        // Still send progress update even if page fails
+        onProgress({
+          current: visited.size,
+          total: maxPages,
+          currentUrl: currentUrl,
+          message: `Skipped: ${currentUrl} - ${error.message}`
+        });
       }
     }
   } finally {
@@ -69,5 +91,14 @@ export async function crawlWebsite(startUrl, maxPages = 10) {
   }
 
   console.log(`✅ Crawling completed. Pages found: ${visited.size}`);
+  
+  // Send final progress update
+  onProgress({
+    current: visited.size,
+    total: visited.size,
+    currentUrl: '',
+    message: `Crawling completed. Found ${visited.size} pages.`
+  });
+  
   return Array.from(visited);
 }

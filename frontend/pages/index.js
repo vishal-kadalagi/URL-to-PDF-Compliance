@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import { io } from "socket.io-client";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -9,6 +10,13 @@ export default function Home() {
   const [selectedPdf, setSelectedPdf] = useState("");
   const [error, setError] = useState("");
   const [jobId, setJobId] = useState(null);
+  const [progress, setProgress] = useState({
+    status: "",
+    message: "",
+    current: 0,
+    total: 0,
+    currentUrl: ""
+  });
 
   // Function to get the API base URL depending on environment
   const getApiBaseUrl = () => {
@@ -34,6 +42,12 @@ export default function Home() {
     }
   };
 
+  // Function to get Socket.IO URL
+  const getSocketUrl = () => {
+    const baseUrl = getApiBaseUrl();
+    return baseUrl;
+  };
+
   const handleConvert = async () => {
     if (!url) {
       setError("Please enter a URL");
@@ -45,19 +59,60 @@ export default function Home() {
     setPages([]);
     setSelectedPdf("");
     setJobId(null);
+    setProgress({ status: "starting", message: "Starting conversion process...", current: 0, total: 0, currentUrl: "" });
 
     const apiBaseUrl = getApiBaseUrl();
-
+    const socketUrl = getSocketUrl();
+    
+    // Connect to socket
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling']
+    });
+    
     try {
+      // Make the request
       const res = await axios.post(`${apiBaseUrl}/convert`, { 
         url, 
         maxPages: parseInt(maxPages) || 10 
-      }, { timeout: 300000 });
-
+      }, { timeout: 600000 }); // Increased timeout for longer operations
+      
+      setJobId(res.data.jobId);
+      
+      // Join the job room to receive updates
+      socket.emit('join_job', res.data.jobId);
+      
+      // Listen for progress updates
+      socket.on('progress_update', (data) => {
+        setProgress({
+          status: 'crawling',
+          message: data.message || `Processed ${data.current} of ${data.total} pages`,
+          current: data.current,
+          total: data.total,
+          currentUrl: data.currentUrl
+        });
+      });
+      
+      socket.on('status_update', (data) => {
+        setProgress(prev => ({
+          ...prev,
+          status: data.status,
+          message: data.message
+        }));
+      });
+      
+      socket.on('page_processing', (data) => {
+        setProgress({
+          status: 'processing',
+          message: data.message,
+          current: data.current,
+          total: data.total,
+          currentUrl: data.url
+        });
+      });
+      
       if (res.data.pages && res.data.pages.length > 0) {
         setPages(res.data.pages);
         setSelectedPdf(res.data.mergedPdf);
-        setJobId(res.data.jobId);
       } else {
         setError("No pages found for this URL.");
       }
@@ -68,6 +123,10 @@ export default function Home() {
       );
     } finally {
       setLoading(false);
+      // Disconnect socket when done
+      setTimeout(() => {
+        socket.disconnect();
+      }, 1000); // Give a little time for final updates
     }
   };
 
@@ -101,6 +160,25 @@ export default function Home() {
       </div>
 
       {error && <p className="error">{error}</p>}
+
+      {/* Progress indicator */}
+      {progress.message && (
+        <div className="progress-container">
+          <div className="progress-bar">
+            <div className="progress-message">
+              <strong>Status:</strong> {progress.message}
+            </div>
+            {progress.current > 0 && progress.total > 0 && (
+              <div className="progress-stats">
+                <span>Progress: {progress.current}/{progress.total}</span>
+                {progress.currentUrl && (
+                  <div className="current-url"><em>Processing: {progress.currentUrl}</em></div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Dashboard: Pages + PDF Preview */}
       <div className="dashboard">

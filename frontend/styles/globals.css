@@ -119,6 +119,44 @@ p {
   border-left: 4px solid #e74c3c;
 }
 
+/* Progress indicator */
+.progress-container {
+  margin: 20px 0;
+  padding: 15px;
+  background: #e8f4fd;
+  border-radius: 8px;
+  border: 1px solid #b3d9ff;
+}
+
+.progress-bar {
+  width: 100%;
+}
+
+.progress-message {
+  font-weight: 600;
+  color: #0b3d91;
+  margin-bottom: 8px;
+}
+
+.progress-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.current-url {
+  font-size: 0.9em;
+  color: #555;
+  word-break: break-all;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  flex: 1;
+  text-align: right;
+}
+
 /* Dashboard layout */
 .dashboard {
   display: flex;
@@ -238,6 +276,17 @@ p {
 }
 
 /* Responsive */
+@media (max-width: 1200px) {
+  .progress-stats {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .current-url {
+    text-align: left;
+  }
+}
+
 @media (max-width: 1200px) {
   .dashboard {
     flex-direction: column;
